@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <title> CSE 578 - Data Visualization Project- FALL 2022- PEARL</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" />
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/d3.layout.cloud.js"></script>
+        <!-- <script src="js/cloud.js" defer></script> -->
+        <script src="js/main.js" defer></script>
+        <!-- <link rel="stylesheet" href="styles.css" /> -->
+        <style>
+          .dot {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            border: thin solid black;
+            display: inline-block;
+          }
+          div.tooltip {
+                position: absolute;
+                background-color: #ffffca;
+                width: 110px;
+                height: 80px;
+                padding: 2px;
+                font: 12px sans-serif;
+                border-radius: 8px;
+                pointer-events: none;
+            }
+            div.tooltip_area{
+                position: absolute;
+                background-color: #ffffca;
+                width: 250px;
+                height: 250px;
+                padding: 2px;
+                font: 12px sans-serif;
+                border-radius: 8px;
+                pointer-events: none;
+            }
+            div.pie_tooltip{
+              position: absolute;
+              background-color: #ffffca;
+              width: 90px;
+              height: 30px;
+              padding: 2px;
+              font: 12px sans-serif;
+              border-radius: 8px;
+              pointer-events: none;
+              text-align: center;
+              font-weight: 800;
+            }
+            .myContainer{
+              width: 1440px;
+              height: 620px;
+              border: 3px solid black;
+              margin-left : 40px;
+            }
+            .extensions{
+              width: 1440px;
+              height: 510px;
+              border: 3px solid black;
+              margin : auto;
+              background-color: white;
+              /* rgb(186, 226, 225); */
+              margin-top: 20px;
+              float:left;
+              margin-left : 40px;
+              margin-bottom: 20px;
+            }
+            .header{
+              border: 3px solid black;
+              height: 45px;
+            }
+            #pie_svg, #pie_word_cloud {
+                background-color: #ffffca;
+                margin: 0 60px 0 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="pageHeader">
+            <h1 class="text-center">CSE 578 - Data Visualization Project- FALL 2022- PEARL</h1>
+            <h1 class="text-center">Abhinav-Carson-Sai-Sanket-Siddharth-Zamaan</h1>
+        </div>
+        <hr>  
+        <div class="myContainer">
+            <!-- <div id="chart_div" class="border border-dark rounded bg-light shadow-sm">
+              <div class="chartHeaderContainer">
+                  <div class="chart_title">Streamgraph</div>
+              </div> -->
+              <div class="header">
+                  <label for="user"><b>Choose User:</b></label>
+                  <select name="user" id="user" onchange="drawStreamGraph(true);">
+                    <option value="POTUS">POTUS</option>
+                    <option value="chrisbryanASU">Chris Bryan</option>
+                    <option value="elonmusk">Elon</option>
+                    <option value="h3h3productions">h3h3productions</option>
+                  </select>
+                  <label for="startDate"><b>Start Date:</b></label>
+                  <input type="date" id="startDate" name="startDate">
+                  <label for="endDate"><b>End Date:</b></label>
+                  <input type="date" id="endDate" name="endDate">
+                  <button type="button" class="btn btn-primary" onclick="drawStreamGraph();">Update Date</button>
+                  <div style="display: inline;">
+                
+                    <span class="dot" style="background-color:#eb4034;"></span><p style="display: inline;">Anger</p>
+                    <span class="dot" style="background-color:#3bb347;"></span><p style="display: inline;">Fear</p>
+                    <span class="dot" style ="background-color:#fa7916;"></span><p style="display: inline;">Anticipation</p>
+                    <span class="dot" style =background-color:#07f566;></span><p style="display: inline;">Trust</p>
+                    <span class="dot" style="background-color: #07f5f1;"></span><p style="display: inline;">Surprise</p>
+                    <span class="dot" style="background-color: #86b5cf;"></span><p style="display: inline;">Sadness</p>
+                    <span class="dot" style="background-color: #f7f707;"></span><p style="display: inline;">Joy</p>
+                    <span class="dot" style="background-color: #8b07f7;"></span><p style="display: inline;">Disgust</p>
+                  </div>
+              </div>
+              <div id="my_dataviz">
+                <svg id="lineGraph"></svg>
+                <svg id="streamGraph"></svg>
+              </div>
+        </div>
+        <br><hr>
+        <h4 style="text-align: center;">Aggregated Pie Chart</h4>
+        <div class="extensions">
+          <svg id="pie_svg"></svg>
+          <svg id="pie_word_cloud"></svg>
+        </div>
+
+    </body>
+    <!-- <script src="/js/jquery.min.js"></script> -->
+</html> 
