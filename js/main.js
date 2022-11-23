@@ -1,15 +1,24 @@
-var user1Data=[];
-var user2Data=[];
-var user3Data=[];
-var user4Data=[];
+var userDataArray = [];
+var userTweetDataArray = [];
 var streamGraphWidth = 0.6;
-var container, svg, x, y, divTip, color, word_cloud, divTip_Area, keys, user;
+var container, svg, x, y, divTip, color, word_cloud, divTip_Area, keys;
 const margin = {top: 20, right: 30, bottom: 30, left: 60};
-var svg_ChartA, xScale_ChartA, yScale_ChartA, xAxis_ChartA, yAxis_ChartA;
-var test;
-var users_segments = ["POTUS", "chrisbryanASU","elonmusk","h3h3productions"]
-var areaChartObject = {}, pieChartData = {}, lineChartDateArray= [];
 
+// Scatterplot dimensions
+const scatterplot_margin = {top: 10, right: 30, bottom: 30, left: 60}
+var scatterplot_width = 460 - scatterplot_margin.left - scatterplot_margin.right;
+var scatterplot_height = 400 - scatterplot_margin.top - scatterplot_margin.bottom;
+var scatterplot_svg;
+var scatterplot_tooltip;
+var pie_data;
+
+var svg_ChartA, xScale_ChartA, yScale_ChartA, xAxis_ChartA, yAxis_ChartA;
+
+// var users_data
+var users_segments = ["POTUS", "chrisbryanASU","elonmusk","h3h3productions","realDonaldTrump","MrBeast","MKBHD","hasanthehun","GretaThunberg","drewisgooden"]
+var areaChartObject = {}, pieChartData = {}, lineChartDateArray= [];
+var user = "POTUS";
+var test;
 document.addEventListener('DOMContentLoaded', function () {
 
   keys = ["anger","fear","anticipation","trust","suprise","sadness","joy","disgust"];
@@ -18,21 +27,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 d3.csv('model/tweet_dataset/chrisbryanASU_segment.csv'),
                 d3.csv('model/tweet_dataset/elonmusk_segment.csv'),
                 d3.csv('model/tweet_dataset/h3h3productions_segment.csv'),
+                d3.csv('model/tweet_dataset/realDonaldTrump_segment.csv'),
+                d3.csv('model/tweet_dataset/MrBeast_segment.csv'),
+                d3.csv('model/tweet_dataset/MKBHD_segment.csv'),
+                d3.csv('model/tweet_dataset/hasanthehun_segment.csv'),
+                d3.csv('model/tweet_dataset/GretaThunberg_segment.csv'),
+                d3.csv('model/tweet_dataset/drewisgooden_segment.csv'),
                 d3.csv('model/tweet_dataset/POTUS.csv'),
                 d3.csv('model/tweet_dataset/chrisbryanASU.csv'),
                 d3.csv('model/tweet_dataset/elonmusk.csv'),
-                d3.csv('model/tweet_dataset/h3h3productions.csv'),])
+                d3.csv('model/tweet_dataset/h3h3productions.csv'),
+                d3.csv('model/tweet_dataset/realDonaldTrump.csv'),
+                d3.csv('model/tweet_dataset/MrBeast.csv'),
+                d3.csv('model/tweet_dataset/MKBHD.csv'),
+                d3.csv('model/tweet_dataset/hasanthehun.csv'),
+                d3.csv('model/tweet_dataset/GretaThunberg.csv'),
+                d3.csv('model/tweet_dataset/drewisgooden.csv')])
          .then(function (values) {
-          test = values[4];
 
-          user1Data = values[0];
-          user2Data = values[1];
-          user3Data = values[2];
-          user4Data = values[3];
-          
+          /** Push user data into an array */
+          for(let x = 0; x < 10; x++){
+            userDataArray.push(values[x]);
+          }
+
+          /** Push user tweet data into an array */
+          for(let x = 10; x < 20; x++){
+            userTweetDataArray.push(values[x]);
+          }
+
+          test = values[0];
 
           /** Data aggregation for area chart creation */
-          for(let k = 4; k < 8; k++){
+          for(let k = 10; k < 20; k++){
             var areaChartData = [];
             var file_data = values[k];
             var map = new Map();
@@ -44,11 +70,10 @@ document.addEventListener('DOMContentLoaded', function () {
               var temp = JSON.parse(file_data[i].Words_VAD_Emotion);
               const section = parseInt(file_data[i].Segment_ID);
               if(areaChartData.length == section){
-                areaChartData.push({"map" : new Map(), "count" : 0, "date": new Date(file_data[i]["DateTime"].split(" ")[0])});
+                areaChartData.push({"map" : new Map(), "count" : 0, "date": new Date(file_data[i]["DateTime"].split(" ")[0]), Segment_ID : section});
               }
               var object = areaChartData[section];
               Object.entries(temp).forEach((element) => {
-                  //console.log(element);
                   if(object.map.has(element[0])){
                     object.map.set(element[0], object.map.get(element[0]) + 1);
                   }else{
@@ -68,115 +93,262 @@ document.addEventListener('DOMContentLoaded', function () {
                   }
               });
             }
-            areaChartObject[users_segments[k - 4]] = areaChartData;
-            pieChartData[users_segments[k - 4]] = map;
+            areaChartObject[users_segments[k - 10]] = areaChartData;
+            pieChartData[users_segments[k - 10]] = map;
           }
 
           console.log("Load user data from the csv files");
 
+          divTip_Area = d3.select("body").append("div")
+            .attr("class", "tooltip_area")
+            .style("border", "1px solid white")
+            .style("border-width", "2px")
+            .style("border-radius", "5px")
+            .style("opacity", 0)
+
+          // Scatterplot tooltip creation
+          scatterplot_tooltip = d3.select('body').append('div')
+            .attr('class', 'scatterplot_tooltip')
+            .style('opacity', 0);
+
+        
+          
+          
           color = d3.scaleOrdinal().domain(keys).range(['#eb4034','#3bb347','#fa7916','#07f566','#07f5f1','#86b5cf','#f7f707','#8b07f7']);
 
-          drawStreamGraph(true);
+          drawLineChart();
+          drawStreamGraph(true, null);
+          //aggregatedPieChart();
             
-            //  Testing Cosnsole Log
-
-            //  console.log("00000");
-            //  console.log(JSON.parse(u1Data[15]['Segment_VAD_Emotion']));
-            //  console.log(Object.keys(JSON.parse(u1Data[15]['Segment_VAD_Emotion'])).length);
-            //  console.log(JSON.parse(u1Data[16]['Segment_VAD_Emotion']));
-            //  console.log(JSON.parse(u1Data[17]['Segment_VAD_Emotion']));
-            //  console.log("00000");
-
- 
-            //  console.log(u1Data[1]["DateTime"].split(" ")[0]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']));
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).valence);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).arousal);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).dominance);
-
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[0]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[1]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[2]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[3]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[4]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[5]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[6]);
-            //  console.log(JSON.parse(u1Data[1]['Segment_VAD_Emotion']).emotion[7]);
-             
-            //  anger
-            //  fear
-            //  anticipation
-            //  trust
-            //  surprise
-            //  sadness
-            //  joy
-            //  disgust
- 
-            // //  vad only
-            //  var test1 = [...new Set(u1Data.map(d => d['Segment_VAD_Emotion']))]; 
-            // //  console.log(test1);
-            // //  console.log(typeof(test1[0]));
-           
-            
-            // tempHold=JSON.parse(test1[0]);
-            // console.log(JSON.parse(test1[0]).emotion)
-            // var e=JSON.parse(test1[1]).emotion
-            // console.log(typeof(e[2]));
-            // console.log(e[2]);
 
             }); 
         });
 
+function updateSelectedUser(){
+  user=document.getElementById("user").value;
+  console.log("selected user "+user);
+  drawLineChart();
+  drawStreamGraph(true, null);
+}
+
 function getSelectedUserData(){
   var u1Data=[];
-  user=document.getElementById("user").value;
-  if (user==="POTUS"){
-    u1Data=user1Data;
+  selected_user=document.getElementById("user").value;
+  const userIndex = users_segments.indexOf(selected_user);
+  u1Data = userDataArray[userIndex];
+  // if (user==="POTUS"){
+  //   u1Data=user1Data;
+  // }
+  // else if (user==="chrisbryanASU"){
+  //   u1Data=user2Data;
+  // }
+  // else if (user==="elonmusk"){
+  //   u1Data=user3Data;
+  // }
+  // else if (user==="h3h3productions"){
+  //   u1Data=user4Data;
+  // }
+
+  var arrObj=[];
+  for (let i = 0; i < u1Data.length; i++) {
+    if(Object.keys(JSON.parse(u1Data[i]['Segment_VAD_Emotion'])).length!=0){
+
+        arrObj.push({"date":new Date(u1Data[i]["DateTime"].split(" ")[0]),
+        "valence":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).valence,
+        "arousal":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).arousal,
+        "dominance":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).dominance,
+        "anger":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[0],
+        "fear":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[1],
+        "anticipation":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[2],
+        "trust":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[3],
+        "suprise":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[4],  
+        "sadness":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[5],
+        "joy":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[6],
+        "disgust":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[7],
+        "total_sum_emotions": JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion.reduce((partialSum, a) => partialSum + a, 0),
+        "circle_packing_data":JSON.parse(u1Data[i]["Emotion_VAD"])             
+        });
+    }
+  };
+
+
+  return arrObj
+}
+
+function getSelectedUserTweetData(){
+  var u1Data=[];
+  selected_user=document.getElementById("user").value;
+  const userIndex = users_segments.indexOf(selected_user);
+  u1Data = userTweetDataArray[userIndex];
+  return u1Data;
+}
+
+function loadSegmentTweets(segment_id){
+  var segment_data = getSelectedUserTweetData().filter(tweet => tweet.Segment_ID === segment_id.toString());
+  console.log(segment_data);
+  var tweet_list = document.getElementById("tweetList");
+  tweet_list.innerHTML="";
+
+  for(var i=0; i<segment_data.length; i++){
+    var words_vad_emotion = JSON.parse(segment_data[i].Words_VAD_Emotion);
+
+    var words = Object.keys(words_vad_emotion).filter(word => words_vad_emotion[word]['emotion'].toString() != '0,0,0,0,0,0,0,0');
+    console.log(words);
+    var tweet = document.createElement("li");
+
+    tweet.innerHTML = "<a>"+highlightEmotionalWordsInTweet(segment_data[i]['Text'], words)+"</a>";
+    tweet_list.appendChild(tweet);
   }
-  else if (user==="chrisbryanASU"){
-    u1Data=user2Data;
+
+}
+
+function highlightEmotionalWordsInTweet(text,words){
+  for(var i=0; i<words.length; i++){
+    text = text.replaceAll(words[i], "<b>"+words[i]+"</b>");
   }
-  else if (user==="elonmusk"){
-    u1Data=user3Data;
+  return text;
+}
+
+function drawScatterplot(segment_id){
+  d3.select("#scatterplot_svg").selectAll("*").remove();
+  scatterplot_svg = d3.select("#scatterplot_svg")
+      .attr("width", scatterplot_width + scatterplot_margin.left + scatterplot_margin.right)
+      .attr("height", scatterplot_height + scatterplot_margin.top + scatterplot_margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + scatterplot_margin.left + "," + scatterplot_margin.top + ")");
+
+  // console.log(getSelectedUserTweetData());
+  var scatterplot_data = getSelectedUserTweetData().filter(tweet => tweet.Segment_ID === segment_id.toString());
+  // let scatterplot_data = getSelectedUserTweetData();
+  
+  var scatterplot_pie = d3.pie().value(function(d) {return d[1];});
+
+  pie_data = [];
+  for (var i = 0; i < scatterplot_data.length; i++) {
+      for (const [key, value] of Object.entries(JSON.parse(scatterplot_data[i].Words_VAD_Emotion))) {
+          temp = scatterplot_pie(Object.entries(Object.assign({}, value.emotion)));
+          temp = temp.filter(o => o.startAngle != o.endAngle);
+          temp.forEach(function(d) {
+              d.key = key;
+              d.valence = value.valence;
+              d.arousal = value.arousal;
+              d.dominance = value.dominance;
+              d.emotion = value.emotion;
+          });
+          pie_data = pie_data.concat(temp);
+          // console.log(pie_data);
+      }
   }
-  else if (user==="h3h3productions"){
-    u1Data=user4Data;
-  }
-  return u1Data
+
+  // Add X axis
+  var scatterplot_x = d3.scaleLinear()
+      .domain([0, 1])
+      .range([ 0, scatterplot_width ]);
+  
+  scatterplot_svg.append("g")
+      .attr("transform", "translate(0," + scatterplot_height/2 + ")")
+      .call(d3.axisBottom(scatterplot_x));
+
+  // Add Y axis
+  var scatterplot_y = d3.scaleLinear()
+      .domain([0, 1])
+      .range([ scatterplot_height, 0]);
+  
+  scatterplot_svg.append("g")
+      .call(d3.axisLeft(scatterplot_y))
+      .attr("transform", "translate(" + scatterplot_width/2 + ", 0)");
+
+  // X axis label:
+  scatterplot_svg.append("text")
+      .attr("text-anchor", "end")
+      .attr("x", scatterplot_width)
+      .attr("y", scatterplot_height/2 + scatterplot_margin.top + 20)
+      .text("Arousal");
+
+  // Y axis label:
+  scatterplot_svg.append("text")
+      .attr("text-anchor", "end")
+      .attr("y", scatterplot_margin.top - 5)
+      .attr("x", scatterplot_width/2 - 40)
+      .text("Valence")
+
+
+// Draw data
+// const scatterplot_color = d3.scaleOrdinal(d3.schemeSet2); //temp color scale
+scatterplot_svg.selectAll('.pie')
+  .data(pie_data)
+  .join('path')
+  .attr("class", "pie")
+  .attr('d', d3.arc()
+      .innerRadius(0)
+      .outerRadius(function(d) {return Math.max(d.dominance*(Math.min(scatterplot_width, scatterplot_height) / 15 - 10), 6);})
+  )
+  .attr('fill', function(d) { return color(keys[parseInt(d.data[0])])}) // scatterplot_color(d.data[0]);
+  .attr('transform', function(d) { return 'translate(' + scatterplot_x(d.arousal) + ',' + scatterplot_y(d.valence) + ')';})
+  .on("click", function(d, i) {
+      if (d3.select(this).style("stroke-opacity") < 1) {
+        scatterplot_svg.selectAll('.pie').style("stroke-opacity", 0);
+        scatterplot_svg.selectAll('.pie').each(function(d) {
+              if(d.valence == i.valence && d.arousal == i.arousal) {
+                  d3.select(this).style("stroke-opacity", 1);
+              }
+          });
+      }
+      else { scatterplot_svg.selectAll('.pie').style("stroke-opacity", 0); }
+  })
+  .on("mouseover", function(d, i) {
+      if (d3.select(this).style("stroke-opacity") == 0) {
+        scatterplot_svg.selectAll('.pie').each(function(d) {
+              if(d.valence == i.valence && d.arousal == i.arousal) {
+                  d3.select(this).style("stroke-opacity", 0.99);
+              }
+          });
+      }
+      var emotionText = "";
+      for (var j = 0; j < i.emotion.length; j++) {
+          if (i.emotion[j] == 1) {
+              emotionText += keys[j] + " ";
+          }
+      }
+      const text = "<i>" + i.key + "</i><br><b>valence</b> " + i.valence + "<br><b>arousal</b> " + i.arousal + "<br><b>dominance</b> " + i.dominance + "<br><b>emotion</b> " + emotionText;
+      scatterplot_tooltip.html(text)
+          .style('opacity', .9)
+          .style('left', (d.pageX+20) + 'px')
+          .style('top', (d.pageY+20) + 'px');
+  })
+  .on("mousemove", function(d) {
+    scatterplot_tooltip.style('top', d.pageY+20+'px')
+          .style('left',d.pageX+20+'px');
+  })
+  .on("mouseout", function(d,i) {
+      if (d3.select(this).style("stroke-opacity") == 0.99) {
+        scatterplot_svg.selectAll('.pie').each(function(d) {
+              if(d.valence == i.valence && d.arousal == i.arousal) {
+                  d3.select(this).style("stroke-opacity", 0);
+              }
+          });
+      }
+      scatterplot_tooltip.html("")
+          .style('opacity', 0)
+          .style('left', -scatterplot_margin.left + 'px')
+          .style('top', -scatterplot_margin.top + 'px');
+  })
+  .attr("stroke", "black")
+  .style("stroke-width", "2px")
+  .style("stroke-opacity", 0)
+  .style("opacity", 0.7);
+
+
+    
 }
 
 
-function drawStreamGraph(loadLineChart = false){
+function drawStreamGraph(loadLineChart = false, dateRange=null){
   
   d3.select("#streamGraph").selectAll("*").remove();
-
-  var u1Data = getSelectedUserData();
   
-  // console.log("Hi");
-  // console.log("u1Data");
   // arrayOfObjects 
-  var arrObj=[];
-
-  for (let i = 0; i < u1Data.length; i++) {
-      // console.log(arrObj);
-      if(Object.keys(JSON.parse(u1Data[i]['Segment_VAD_Emotion'])).length!=0){
-
-          arrObj.push({"date":new Date(u1Data[i]["DateTime"].split(" ")[0]),
-          "valence":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).valence,
-          "arousal":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).arousal,
-          "dominance":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).dominance,
-          "anger":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[0],
-          "fear":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[1],
-          "anticipation":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[2],
-          "trust":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[3],
-          "suprise":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[4],  
-          "sadness":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[5],
-          "joy":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[6],
-          "disgust":JSON.parse(u1Data[i]['Segment_VAD_Emotion']).emotion[7],              
-          });
-      }
-    };
+  var arrObj = getSelectedUserData();
 
     const height = 500 - margin.top - margin.bottom;
     const width = 1400- margin.left - margin.right;
@@ -192,11 +364,6 @@ function drawStreamGraph(loadLineChart = false){
 
 
     var dateArray = [...new Set(arrObj.map(d => d['date']))];
-    // console.log(dateArray);
-    if(loadLineChart){
-      lineChartDateArray= dateArray;
-      drawLineChart(dateArray, data, user); // // 4 passed for the 1st dataset
-    }
     var ipStartDate=document.getElementById("startDate").value;
     var ipEndDate=document.getElementById("endDate").value;
     //console.log(ipEndDate);
@@ -232,7 +399,12 @@ function drawStreamGraph(loadLineChart = false){
       };
     };
 
-    /* X axis */
+    if (dateRange){
+      xAxisMinDate = dateRange[0];
+      xAxisMaxDate = dateRange[1];
+    }
+
+    // X axis
     x = d3.scaleTime()
       .domain([xAxisMinDate, xAxisMaxDate])
       // .domain(d3.extent(updatedDateArray, function(d) { return d; }))
@@ -246,11 +418,6 @@ function drawStreamGraph(loadLineChart = false){
 
     svg.append("g")
       .attr("transform", `translate(0, ${height})`)
-      
-      // .call(d3.axisBottom(x)
-      // // .tickFormat(d3.timeFormat("%Y-%m-%d")).tickValues(data.map(function(d) { return new Date(d.date)}) ));
-      // .tickFormat(d3.timeFormat("%Y-%m-%d")).tickValues(updatedDateArray ).ticks());
-      // .call(d3.axisBottom(x).ticks(d3.timeDay.every(100))
       .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")).tickValues(tickArray));
         
         
@@ -272,20 +439,12 @@ function drawStreamGraph(loadLineChart = false){
         }
       }
     })
-
-
-    divTip_Area = d3.select("body").append("div")
-            .attr("class", "tooltip_area")
-            .style("border", "1px solid white")
-            .style("border-width", "2px")
-            .style("border-radius", "5px")
-            .style("opacity", 0);
-
+  
     /* Plot the area chart */
     var area = d3.area()
       .x(function(d) { return x(d.date); })
       .y0(height)
-      .y1(function(d) { return y_Area(d.count ); });
+      .y1(function(d) { return y_Area(d.count ); }); // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
     let areaData = [];
     const userAreaData = areaChartObject[user];
@@ -301,15 +460,24 @@ function drawStreamGraph(loadLineChart = false){
       .datum(ele)
       .attr("class", "area")
       .on("mouseover", function(d,i) {
-      
             var tempData = [];
             var obj = {};
             obj['date'] = i[0].date;
             obj['val'] = 0;
             tempData.push(Object.assign({},obj));
 
+            var area_wc_data = [];
+            const max_val = Math.max(...i[1].map.values());
+            for (const [key, value] of i[1].map) {
+              if(max_val >= 35){
+                area_wc_data.push({word: key, freq: value * (max_val / 35)});
+              }else{
+                area_wc_data.push({word: key, freq: value * (35 / max_val)});
+              }
+            }
+
             var red_lines = svg.selectAll(".red_line")
-              .data(tempData)
+              .data(tempData);
               
             red_lines.enter().append('line')
               .attr("class", "red_lines")
@@ -325,15 +493,21 @@ function drawStreamGraph(loadLineChart = false){
               d3.select(".yAxisArea").style("visibility", "visible");
               divTip_Area.style("opacity", .9);
               divTip_Area.style("left", (d.pageX) + "px").style("top", (d.pageY) + "px");
-              wordChart_AreaGraph();
+              wordChart_AreaGraph(area_wc_data);
   
       })
       .on("mouseout", function(d) {
               d3.select(this).style('opacity', 0.5);
               d3.select(".yAxisArea").style("visibility", "hidden");
-              d3.select(".tooltip_area").style('opacity', 0);
+              d3.select(".tooltip_area").style('opacity', 0); // Hide tooltip when hovered
+              d3.select(".tooltip_area").selectAll("*").remove();
               d3.select(".red_lines").remove();
               d3.selectAll("#word_cloud_chart").remove();
+      })
+      .on("click", function(d,i) {
+        // console.log(i[0].Segment_ID);
+        drawScatterplot(i[0].Segment_ID);
+        loadSegmentTweets(i[0].Segment_ID)
       })
       .attr('fill', 'rgba(70, 130, 180)')
       .attr("opacity", 0.5)
@@ -346,7 +520,6 @@ function drawStreamGraph(loadLineChart = false){
       .order(d3.stackOrderNone)
       .offset(d3.stackOffsetWiggle)
       .keys(keys)(updatedData);
-    // console.log(stackedData);
 
     var area = d3.area()
       .x(function(d) { return x(d.data.date); })
@@ -373,8 +546,6 @@ function drawStreamGraph(loadLineChart = false){
     .join("path")
     .attr('class',"stack_layers")
     .on("mouseover", function(d,i) {
-      // console.log(d3.rgb(this));
-      // d3.rgb(this).opacity = 1;
       tooltipStreamgraph.html(`Data: ${d}`).style("visibility", "visible").text(i.key);
       d3.selectAll(".stack_layers").style('opacity',0.4);
       d3.select(this).style('opacity',1);
@@ -396,28 +567,19 @@ function drawStreamGraph(loadLineChart = false){
     var circles = svg.selectAll("._circle")
                 .data(updatedData);
 
-    // console.log(updatedData);
-
     circles.enter().append('circle')
         .attr('id', function(d){ return 'circle' })
         .attr('class',"cnty_circles")
         .merge(circles)
-        //.attr("transform", "translate(" + (20) + ", 0)")
         .attr("cx", (d) => {return x(d.date);})
         .attr("cy", (d) => y(d.valence) )
         .attr("r", 10)
-        .on("mouseover", function(d,i) { 
-          //console.log(i);
+        .on("mouseover", function(d,i) {
           circle_packing(i.date, i.valence, i)   
-        })
-        .on("mouseout", function(d) {
-          // d3.select(".container_svg").remove();
         })
         .style("stroke", "black")
         .style("stroke-width", 1.5)
         .attr("fill", "grey")
-        //.transition().duration(transition_duration)
-        //.attr("opacity", 1)
     
     var rext = svg.selectAll(".rect").append("re").data(updatedData);
 
@@ -440,7 +602,13 @@ function drawStreamGraph(loadLineChart = false){
 
 };
 
-function drawLineChart(dateArray, userData, dataSetName){
+// function drawLineChart(dateArray, userData, dataSetName){
+function drawLineChart(){
+  var userData = getSelectedUserData();
+  var dateArray = [...new Set(userData.map(d => d['date']))];
+  var dataSetName = user;
+
+  lineChartDateArray= dateArray;
 
   d3.select("#lineGraph").selectAll("*").remove();
   const l_height = 100 - margin.bottom;
@@ -449,10 +617,8 @@ function drawLineChart(dateArray, userData, dataSetName){
   /* SVG Element for the line graph */
   svg_ChartA = d3.select("#lineGraph")
                 .attr("height", l_height)
-                // .attr("height", height + margin.top + margin.bottom)
                 .attr("width", l_width + margin.left + margin.right)
                 .append("g")
-                // .style("fill", "red")
                 .attr("transform",`translate(${margin.left}, ${margin.top})`);
 
   xScale_ChartA = d3.scaleTime().domain([d3.min(dateArray), d3.max(dateArray)]).range([0, l_width]);
@@ -471,6 +637,7 @@ function drawLineChart(dateArray, userData, dataSetName){
               .y(function(d) { return yScale_ChartA(d.valence);})
 
   var dataArr = [["key", userData]];
+
   svg_ChartA.selectAll(".line")
       .data(dataArr)
       .join("path")
@@ -512,71 +679,56 @@ function drawLineChart(dateArray, userData, dataSetName){
     .attr("opacity", 0.5)
     .attr("d", area);
 
-  svg_ChartA.call( d3.brushX()                 // Add the brush feature using the d3.brush function
-    .extent( [ [0,0], [l_width, l_height-20] ] ) // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
-    .on("start brush", brushChanged) // Each time the brush selection changes, trigger the 'updateChart' function
-  )
+  svg_ChartA.call( d3.brushX()                 
+    .extent( [ [0,0], [l_width, l_height-20] ] ) 
+    .on("start brush", brushChanged) 
+  );
 
 }
 
 function brushChanged(event){
   extent = event.selection;
-  console.log(extent);
   var startDate;
   var endDate;
-
   for(var i=0; i<lineChartDateArray.length; i++){
     if(xScale_ChartA(lineChartDateArray[i])>=extent[0]){
       startDate = lineChartDateArray[i]
       break;
     }
   }
-
   for(var i=lineChartDateArray.length-1; i>=0; i--){
     if(xScale_ChartA(lineChartDateArray[i])<=extent[1]){
       endDate = lineChartDateArray[i]
       break;
     }
-  }
-
-
-  console.log(startDate);
-  console.log(endDate);
   
-  // console.log(event);
+  }
+  // console.log([startDate, endDate]);
+  drawStreamGraph(true,[startDate, endDate]);
 }
 
-function circle_packing(date, valence, i_data){
+function circle_packing(date, valence, data_packing){
+
   /** 
      * Plot of the packing circles 
      * 
      */
-   var dataset = {
-    className: "root",
-    children: [{
-        name: "subtree-1",
-        packageName: 'aa',
-        valence: 0.56,
-        arousal: 0.67,
-        dominance: 0.45,
-        emotion: "trust",
-        value: 30
-    }, {
-        name: "subtree-2",
-        valence: 0.62,
-        arousal: 0.54,
-        dominance: 0.58,
-        emotion: "fear",
-        value: 30
-    }, {
-        name: "subtree-4",
-        valence: 0.53,
-        arousal: 0.61,
-        dominance: 0.56,
-        emotion: "anticipation",
-        value: 30
-    }]
-  };
+
+  var dataset = {className: "root", children :[]};
+
+  const circle_packing_data = data_packing.circle_packing_data;
+
+  for(let d = 0; d < circle_packing_data.length; d++){
+    let obj = circle_packing_data[d];
+    if(obj.arousal > 0.5){
+      obj.valence = parseFloat(obj.valence).toFixed(2);
+      obj.dominance = parseFloat(obj.dominance).toFixed(2);
+      obj.arousal = parseFloat(obj.arousal).toFixed(2);
+      obj["emotion"] = keys[d];
+      obj["value"] = parseFloat(data_packing[keys[d]]/data_packing.total_sum_emotions).toFixed(2);
+      dataset.children.push(obj);
+    }
+  }
 
   divTip = d3.select("body").append("div")
             .attr("class", "tooltip")
@@ -648,69 +800,69 @@ function circle_packing(date, valence, i_data){
   })
 }
 
-function wordChart_AreaGraph(x_point, y_point){
-    var myWords = [
-        {word: "Running", freq: "10"},
-        {word: "Surfing", freq: "20"},
-        {word: "Climbing", freq: "50"},
-        {word: "Kiting", freq: "30"},
-        {word: "Sailing", freq: "20"},
-        {word: "Snowboarding", freq: "60"}
-    ]
+function wordChart_AreaGraph(myWords){
 
-    // set the dimensions and margins of the graph
-    var cwidth = 250, cheight = 250;
+    var cwidth = 240, cheight = 240;
 
-    // append the svg object to the body of the page
-    word_cloud = d3.select(".tooltip_area").append("svg")
-    .attr("id", "word_cloud_chart")
-        .attr("width", 250)
-        .attr("height", 250)
+    d3.select(".tooltip_area").append("svg")
+            .attr("id", "area_wc_svg")
+            .attr("width", 240)
+            .attr("height", 240);
+
+    /* Pie chart word cloud*/
+    d3.layout.cloud()
+        .size([cwidth, cheight])
+        .words(myWords)
+        .rotate(function() {
+          return ~~(Math.random() * 2) * 90;
+        })
+        .font("Impact")
+        .fontSize(function(d) {
+          return d.freq;
+        })
+        .on("end", drawAreaWordCloud)
+        .start();
+
+    function drawAreaWordCloud(words) {
+        d3.select("#area_wc_svg")
+        .attr("width", cwidth)
+        .attr("height", cheight)
         .append("g")
         .attr("transform", "translate(" + ~~(cwidth / 2) + "," + ~~(cheight / 2) + ")")
-
-    var layout = d3.layout.cloud()
-      .size([250, 250])
-      .words(myWords)
-      .padding(5)        //space between words
-      .font("auto")
-      //.rotate(function() { return ~~(Math.random() * 2) * 90; })
-      .fontSize(function(d) { return 25; })      // font size of words
-      .on("end", draw)
-
-    layout.start();
-
-    // This function takes the output of 'layout' above and draw the words
-    // Wordcloud features that are THE SAME from one word to the other can be here
-    function draw(words) {
-      word_cloud.selectAll("text")
-            .data(words)
-            .enter().append("text")
-            .style("font-size", "25px")
-            .style("fill", "black")
-                .style("-webkit-touch-callout", "none")
-                .style("-webkit-user-select", "none")
-                .style("-khtml-user-select", "none")
-                .style("-moz-user-select", "none")
-                .style("-ms-user-select", "none")
-                .style("user-select", "none")
-                .style("cursor", "default")
-            .attr("text-anchor", "middle")
-            .style("font-family", "auto")
-            .attr("transform", function(d) {
-              return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
-            })
-            .text(function(d) { return d.text; });
+        .selectAll("text")
+        .data(words)
+        .enter().append("text")
+        .attr("class", "area_word_chart_text")
+        .style("font-size", function(d) {
+          return d.freq + "px";
+        })
+        .style("-webkit-touch-callout", "none")
+        .style("-webkit-user-select", "none")
+        .style("-khtml-user-select", "none")
+        .style("-moz-user-select", "none")
+        .style("-ms-user-select", "none")
+        .style("user-select", "none")
+        .style("cursor", "default")
+        .style("font-family", "Impact")
+        .style("fill", "black")
+        .attr("text-anchor", "middle")
+        .attr("transform", function(d) {
+          return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+        })
+        .text(function(d) {
+          return d.word;
+        });
     }
 }
 
 
 function aggregatedPieChart(){
     d3.select("#pie_svg").selectAll("*").remove();
+    d3.select("#pie_word_cloud").selectAll("*").remove();
     const pie_width = 600, pie_height = 500, pie_margin = 30;
     const radius = Math.min(pie_width, pie_height) / 2 - pie_margin
 
-    var data = {} // {"anger" : 10 ,"fear": 15,"anticipation": 22,"trust" : 45,"suprise" :65,"sadness": 18,"joy" : 23,"disgust": 9}
+    var data = {}
     for (const [key, value] of pieChartData[user]) {
       data[key] = value.size;
     }
@@ -719,12 +871,11 @@ function aggregatedPieChart(){
     const max = Math.max(...pieChartData[user].get("trust").values());
     for (const [key, value] of pieChartData[user].get("trust")) {
       if(max >= 60){
-        wordChartData.push({text: key, size: value * (max / 60)}); // Size on a scale of 40
+        wordChartData.push({text: key, size: value * (max / 60)});
       }else{
-        wordChartData.push({text: key, size: value * (60 / max)}); // Size on a scale of 40
+        wordChartData.push({text: key, size: value * (60 / max)});
       }
     }
-    //console.log(wordChartData);
 
 
     var pie_divTip = d3.select("body").append("div")
@@ -754,7 +905,7 @@ function aggregatedPieChart(){
       .attr('class','arc')
       .attr('d', pie_arc)
       .on("mouseover", function(d,i) {
-          //console.log(i);
+
           pie_divTip.style("opacity", .9);
           pie_divTip.html(i.data[0]).style("left", (d.pageX) + "px").style("top", (d.pageY) + "px");
           
@@ -786,7 +937,6 @@ function aggregatedPieChart(){
 
 
 function pieChartWordChart(pie_width, pie_height, wordChartData){
-    
   /* Pie chart word cloud*/
     d3.layout.cloud()
         .size([pie_width, pie_height])

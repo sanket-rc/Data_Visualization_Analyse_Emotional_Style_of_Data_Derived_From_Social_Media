@@ -79,6 +79,41 @@ def compute_vad_for_segment(segment_vad_emotion_list):
     emotion = emotion/count
     return json.dumps({'valence': vad[0], 'arousal': vad[1], 'dominance':vad[2], 'emotion': list(emotion)})
 
+
+def compute_segment_emotion_vad(user_id):
+    filename = f"tweet_dataset/{user_id}.csv"
+    segment_filename = f"tweet_dataset/{user_id}_segment.csv"
+    df_tweets = pd.read_csv(filename)
+    df_segment = pd.read_csv(segment_filename)
+
+    segment_emotion_vad_list = []
+
+    for segment_id in list(df_segment['Segment_ID']):
+        emotion_count = [0 for _ in range(8)]
+        emotion_vad_list = [[0.0,0.0,0.0] for _ in range(8)]
+        emotion_vad_list = [np.array(x) for x in emotion_vad_list]
+        df_segment_tweets = df_tweets[df_tweets['Segment_ID']==segment_id]
+        for tweet_words in list(df_segment_tweets['Words_VAD_Emotion']):
+            d = json.loads(tweet_words)
+            for word in d:
+                vad_array = np.array([d[word]['valence'], d[word]['arousal'], d[word]['dominance']])
+                word_emotions = d[word]['emotion']
+                for i in range(len(word_emotions)):
+                    if word_emotions[i] == 1:
+                        emotion_count[i] += 1
+                        emotion_vad_list[i] += vad_array
+        
+        for i in range(len(emotion_vad_list)):
+            emotion_vad_list[i] = emotion_vad_list[i]/emotion_count[i] if emotion_count[i]>0 else [0,0,0]
+            emotion_vad_list[i] = list(emotion_vad_list[i])
+        segment_emotion_vad_list.append([{'valence':x[0],'arousal': x[1],'dominance': x[2]} for x in emotion_vad_list])
+
+    segment_emotion_vad_list = [json.dumps(x) for x in segment_emotion_vad_list]
+    df_segment['Emotion_VAD'] = segment_emotion_vad_list
+    df_segment.to_csv(segment_filename, index=False)
+
+
+
 def segment_tweets(user_id):
     filename = f"tweet_dataset/{user_id}.csv"
     segment_filename = f"tweet_dataset/{user_id}_segment.csv"
@@ -125,9 +160,11 @@ def segment_tweets(user_id):
     
 
 if __name__=="__main__":
-    # user_ids = ["h3h3productions", "chrisbryanASU"]
-    user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun"]
+    # user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun"]
+    user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun", "realDonaldTrump", "MrBeast","MKBHD", "drewisgooden", "GretaThunberg"]
     for user_id in user_ids:
         compute_vad_for_user(user_id)
         segment_tweets(user_id)
+        compute_segment_emotion_vad(user_id)
 
+   

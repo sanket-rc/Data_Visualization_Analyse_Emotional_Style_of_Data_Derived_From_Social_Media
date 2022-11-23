@@ -34,7 +34,8 @@ def tweets_to_csv(user_id):
 
 
 if __name__=="__main__":
-    user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun"]
+    # user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun"]
+    user_ids = ["realDonaldTrump", "MrBeast","MKBHD", "drewisgooden", "GretaThunberg"]
     for user_id in user_ids:
         tweets_to_csv(user_id)
     

@@ -20,12 +20,13 @@
             border: thin solid black;
             display: inline-block;
           }
-          div.tooltip {
+          div.scatterplot_tooltip,div.tooltip {
                 position: absolute;
                 background-color: #ffffca;
-                width: 110px;
+                width: auto;
+                max-width: 300px;
                 height: 80px;
-                padding: 2px;
+                padding: 5px;
                 font: 12px sans-serif;
                 border-radius: 8px;
                 pointer-events: none;
@@ -70,13 +71,38 @@
               margin-left : 40px;
               margin-bottom: 20px;
             }
+            .scatterplotContainer{
+              border: 3px solid black;
+              width: 1440px;
+              margin-left: 40px;
+              height: 420px;
+              padding-top: 13px;
+              display: flex;
+            }
             .header{
               border: 3px solid black;
               height: 45px;
             }
+            #scatterplot_svg {
+                background-color: white;
+                margin: 0 60px 0 50px;
+            }
+            #tweetContainer {
+                /* margin: 0 60px 0 50px; */
+                height: 400px;
+                overflow-y:auto;
+            }
             #pie_svg, #pie_word_cloud {
                 background-color: #ffffca;
                 margin: 0 60px 0 50px;
+            }
+            li{
+              padding: 10px;
+              font-size: small;
+            }
+            li:hover {
+              /* color: #2693ff; */
+              background-color: orange;
             }
         </style>
     </head>
@@ -93,11 +119,17 @@
               </div> -->
               <div class="header">
                   <label for="user"><b>Choose User:</b></label>
-                  <select name="user" id="user" onchange="drawStreamGraph(true);">
+                  <select name="user" id="user" onchange="updateSelectedUser();">
                     <option value="POTUS">POTUS</option>
                     <option value="chrisbryanASU">Chris Bryan</option>
                     <option value="elonmusk">Elon</option>
                     <option value="h3h3productions">h3h3productions</option>
+                    <option value="realDonaldTrump">Donald Trump</option>
+                    <option value="MrBeast">Mr Beast</option>
+                    <option value="MKBHD">MKBHD</option>
+                    <option value="hasanthehun">hasanthehun</option>
+                    <option value="GretaThunberg">Greta Thunberg</option>
+                    <option value="drewisgooden">Drewis Gooden</option>
                   </select>
                   <label for="startDate"><b>Start Date:</b></label>
                   <input type="date" id="startDate" name="startDate">
@@ -120,6 +152,22 @@
                 <svg id="lineGraph"></svg>
                 <svg id="streamGraph"></svg>
               </div>
+        </div>
+        <div class="scatterplotContainer">
+          <div class="row">
+            <div class="col-sm-6">
+              <svg id="scatterplot_svg"></svg>
+            </div>
+            <div class="col-sm-6">
+              <div id="tweetContainer">
+                <ul id="tweetList" style="list-style: none;">
+                </ul>
+              </div>
+            </div>
+        
+          </div>
+          
+          
         </div>
         <br><hr>
         <h4 style="text-align: center;">Aggregated Pie Chart</h4>
