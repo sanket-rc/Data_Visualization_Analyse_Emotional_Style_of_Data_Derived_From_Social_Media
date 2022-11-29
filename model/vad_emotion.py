@@ -128,14 +128,17 @@ def segment_tweets(user_id):
     segment_id = 0
     count = 0
     first = True
+    previous_date = None
     for index, row in df_tweets.iterrows():
         if first:
             start_date_list.append(row['DateTime'])
             first = False
         d = json.loads(row['Tweet_VAD_Emotion'])
+        current_date = row['DateTime'].split(" ")[0]
         if len(d) != 0 and d['emotion'] != [0, 0, 0, 0, 0, 0, 0, 0]:
-                count += 1
-        if count > SEGMENT_SIZE:
+            # if previous_date is not None and previous_date != current_date: #prevents same day segments and two segments starting on the same date
+            count += 1
+        if count > SEGMENT_SIZE and ((previous_date is None) or (previous_date != current_date)): #prevents two segments starting on the same date:
             count = 0
             segment_id+=1
             start_date_list.append(row['DateTime'])
@@ -144,7 +147,9 @@ def segment_tweets(user_id):
         else:
             segment_vad_emotion_list.append(json.loads(row['Tweet_VAD_Emotion']))
         segment_id_column_list.append(segment_id)
+        previous_date = current_date
     segment_vad_emotion_column_list.append(compute_vad_for_segment(segment_vad_emotion_list))
+    
     if len(segment_vad_emotion_column_list) > len(start_date_list):
         segment_vad_emotion_column_list = segment_vad_emotion_column_list[:-1]
 
@@ -162,6 +167,7 @@ def segment_tweets(user_id):
 if __name__=="__main__":
     # user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun"]
     user_ids = ["h3h3productions", "chrisbryanASU","elonmusk", "POTUS", "hasanthehun", "realDonaldTrump", "MrBeast","MKBHD", "drewisgooden", "GretaThunberg"]
+    # user_ids = ["GretaThunberg"]
     for user_id in user_ids:
         compute_vad_for_user(user_id)
         segment_tweets(user_id)
